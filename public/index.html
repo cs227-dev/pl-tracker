@@ -171,7 +171,11 @@
       object-fit: contain; margin-right: 0.45rem;
     }
     .form-dots { display: flex; gap: 3px; justify-content: center; align-items: center; }
-    .fd { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .fd {
+      width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; color: #fff; letter-spacing: 0;
+    }
     .fd.W { background: #4cae4c; }
     .fd.D { background: #888; }
     .fd.L { background: #c9302c; }
@@ -493,9 +497,11 @@ async function loadTable() {
     const rows = total.table.map(r => {
       const zc   = zoneClass(r.position);
       const gd   = r.goalDifference;
-      const form = (r.form || '').split(',').slice(-5).map(f => {
+      const form = (r.form || '').split(',').slice(-6).map(f => {
         const c = f==='W'?'W':f==='D'?'D':'L';
-        return `<div class="fd ${c}" title="${f==='W'?'Win':f==='D'?'Draw':'Loss'}"></div>`;
+        const label = f==='W'?'W':f==='D'?'D':'L';
+        const title = f==='W'?'Win':f==='D'?'Draw':'Loss';
+        return `<div class="fd ${c}" title="${title}">${label}</div>`;
       }).join('');
       const tName = r.team.shortName||r.team.name;
       return `<tr class="${zc}">
@@ -522,7 +528,7 @@ async function loadTable() {
           <th class="hide-sm" title="Goals For">GF</th>
           <th class="hide-sm" title="Goals Against">GA</th>
           <th title="Goal Difference">GD</th>
-          <th title="Last 5">Form</th>
+          <th title="Last 6 matches">Form</th>
           <th title="Points">Pts</th>
         </tr></thead>
         <tbody>${rows}</tbody>
