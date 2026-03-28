@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Premier League Tracker</title>
+  <style>
+    /*
+      Arsenal 05/06 Home Kit palette
+      ─────────────────────────────
+      Maroon body   #6B1010
+      Gold sleeves  #C9A227
+      Dark bg       #1C0404
+      Light gold    #E8C55A
+      Cream text    #F5ECD7
+    */
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #1C0404;
+      --maroon:     #6B1010;
+      --maroon-mid: #8B1515;
+      --maroon-hi:  #A81C1C;
+      --gold:       #C9A227;
+      --gold-lt:    #E8C55A;
+      --gold-pale:  #F5E4A8;
+      --cream:      #F5ECD7;
+      --muted:      rgba(245,236,215,0.50);
+      --border:     rgba(201,162,39,0.18);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--cream);
+      min-height: 100vh;
+    }
+
+    /* ─── HEADER ──────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg,#120202 0%,var(--maroon) 65%,#2E0606 100%);
+      border-bottom: 3px solid var(--gold);
+      padding: 0 1.5rem;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.65);
+    }
+    .header-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap; padding: 0.75rem 0;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .crest { width: 44px; height: 44px; flex-shrink: 0; }
+    .brand-text h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.75rem; letter-spacing: 0.07em;
+      color: var(--gold-lt); line-height: 1;
+    }
+    .brand-text p {
+      font-size: 0.67rem; color: var(--muted);
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .season-badge {
+      background: var(--gold); color: #1C0404;
+      font-weight: 700; font-size: 0.72rem;
+      padding: 0.28rem 0.75rem; border-radius: 2px;
+      letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+    }
+
+    /* ─── NAV ─────────────────────────────────────────────────── */
+    nav {
+      background: var(--maroon);
+      border-bottom: 2px solid rgba(201,162,39,0.22);
+    }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; }
+    .tab-btn {
+      background: none; border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif; font-size: 0.8rem;
+      font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.9rem 1.5rem; cursor: pointer; position: relative;
+      transition: color 0.2s;
+    }
+    .tab-btn::after {
+      content:''; position: absolute; bottom:0; left:0; right:0; height:3px;
+      background: var(--gold); transform: scaleX(0); transition: transform 0.2s;
+    }
+    .tab-btn.active { color: var(--gold-lt); }
+    .tab-btn.active::after { transform: scaleX(1); }
+    .tab-btn:hover { color: var(--cream); }
+
+    /* ─── MAIN ────────────────────────────────────────────────── */
+    main { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem; letter-spacing: 0.1em; color: var(--gold);
+      margin-bottom: 1.1rem;
+      display: flex; align-items: baseline; gap: 0.55rem;
+    }
+    .section-title small {
+      font-family: 'Inter', sans-serif; font-size: 0.67rem;
+      font-weight: 400; letter-spacing: 0.04em;
+      color: var(--muted); text-transform: none;
+    }
+
+    /* ─── LOADER ──────────────────────────────────────────────── */
+    .loader {
+      text-align: center; padding: 3.5rem 1rem;
+      color: var(--muted); font-size: 0.82rem;
+    }
+    .spinner {
+      width: 34px; height: 34px;
+      border: 3px solid rgba(201,162,39,0.15);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── ERROR ───────────────────────────────────────────────── */
+    .err {
+      background: rgba(139,21,21,0.22);
+      border: 1px solid var(--maroon-hi);
+      border-left: 4px solid var(--gold);
+      padding: 1rem 1.2rem; border-radius: 4px;
+      font-size: 0.82rem; color: var(--gold-pale); line-height: 1.6;
+    }
+    .err code {
+      font-size: 0.74rem; background: rgba(0,0,0,0.3);
+      padding: 0.1rem 0.4rem; border-radius: 3px;
+    }
+
+    /* ─── LEAGUE TABLE ────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto; border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead tr { background: var(--maroon); border-bottom: 2px solid var(--gold); }
+    thead th {
+      padding: 0.65rem 0.75rem; text-align: center;
+      font-size: 0.65rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--gold);
+      font-weight: 600; white-space: nowrap;
+    }
+    thead th:nth-child(1), thead th:nth-child(2) { text-align: left; }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.042);
+      transition: background 0.12s;
+    }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
+    tbody tr:hover { background: rgba(201,162,39,0.07); }
+    td { padding: 0.58rem 0.75rem; text-align: center; color: var(--cream); }
+    td.pos { width: 30px; font-weight: 700; color: var(--muted); }
+    td.club { text-align: left; font-weight: 600; white-space: nowrap; }
+    td.pts { font-weight: 700; color: var(--gold-lt); font-size: 0.92rem; }
+
+    tr.z-ucl  td.pos { color: #5BA4CF; border-left: 3px solid #5BA4CF; }
+    tr.z-uel  td.pos { color: #E8A838; border-left: 3px solid #E8A838; }
+    tr.z-uecl td.pos { color: #7ECB7E; border-left: 3px solid #7ECB7E; }
+    tr.z-rel  td.pos { color: #D95B5B; border-left: 3px solid #D95B5B; }
+
+    .club-logo {
+      width: 20px; height: 20px; vertical-align: middle;
+      object-fit: contain; margin-right: 0.45rem;
+    }
+    .form-dots { display: flex; gap: 3px; justify-content: center; align-items: center; }
+    .fd { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .fd.W { background: #4cae4c; }
+    .fd.D { background: #888; }
+    .fd.L { background: #c9302c; }
+
+    .table-meta {
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap;
+      gap: 0.5rem; margin-top: 0.6rem;
+    }
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 0.85rem;
+      font-size: 0.67rem; color: var(--muted);
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+    .lbar { width: 3px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+    .table-info { font-size: 0.67rem; color: var(--muted); }
+
+    /* ─── MATCH CARDS ─────────────────────────────────────────── */
+    .gw-group { margin-bottom: 1.75rem; }
+    .gw-header {
+      font-size: 0.69rem; font-weight: 700;
+      letter-spacing: 0.13em; text-transform: uppercase;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.4rem; margin-bottom: 0.65rem;
+    }
+    .match-card {
+      background: linear-gradient(90deg,rgba(107,16,16,0.2) 0%,rgba(28,4,4,0.42) 100%);
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.78rem 1.1rem; margin-bottom: 0.42rem;
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; gap: 0.65rem;
+      transition: border-color 0.18s, background 0.18s;
+    }
+    .match-card:hover {
+      border-color: rgba(201,162,39,0.35);
+      background: rgba(107,16,16,0.16);
+    }
+    .match-team {
+      display: flex; align-items: center;
+      gap: 0.5rem; font-size: 0.83rem; font-weight: 600;
+    }
+    .match-team.away { justify-content: flex-end; flex-direction: row-reverse; }
+    .match-team img { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+    .match-team.winner span { color: var(--gold-lt); }
+
+    .score-box { text-align: center; min-width: 80px; }
+    .score-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.55rem; letter-spacing: 0.07em;
+      color: var(--gold-lt); line-height: 1;
+    }
+    .score-vs { font-size: 0.72rem; color: var(--muted); font-weight: 700; }
+
+    .status-pill {
+      display: inline-block; font-size: 0.58rem;
+      font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 0.13rem 0.5rem; border-radius: 20px; margin-top: 0.18rem;
+    }
+    .p-ft   { background: rgba(76,174,76,0.16);  color: #6ed86e; }
+    .p-live { background: #c9302c; color: #fff; animation: pulse 1.4s ease-in-out infinite; }
+    .p-ht   { background: rgba(201,162,39,0.2); color: var(--gold-lt); }
+    .p-ns   { background: rgba(201,162,39,0.12); color: var(--gold); }
+    .p-ppd  { background: rgba(160,160,160,0.14); color: #aaa; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+    /* ─── REFRESH ROW ─────────────────────────────────────────── */
+    .refresh-row {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 0.5rem; margin-top: 1.5rem;
+      font-size: 0.67rem; color: var(--muted);
+    }
+    .refresh-btn {
+      background: none; border: 1px solid var(--border); color: var(--gold);
+      font-size: 0.68rem; padding: 0.28rem 0.65rem; border-radius: 3px;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: background 0.15s;
+    }
+    .refresh-btn:hover { background: rgba(201,162,39,0.1); }
+
+    /* ─── FOOTER ──────────────────────────────────────────────── */
+    footer {
+      text-align: center; padding: 1.75rem 1rem 2.5rem;
+      color: var(--muted); font-size: 0.67rem;
+      border-top: 1px solid rgba(201,162,39,0.08);
+      margin-top: 1.5rem; letter-spacing: 0.04em; line-height: 1.9;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .brand-text h1 { font-size: 1.3rem; }
+      .tab-btn { padding: 0.72rem 0.9rem; font-size: 0.72rem; }
+      .hide-sm { display: none; }
+      .match-team { font-size: 0.74rem; }
+      .match-team img { width: 18px; height: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <svg class="crest" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="cg" cx="40%" cy="35%">
+            <stop offset="0%" stop-color="#4a0808"/>
+            <stop offset="100%" stop-color="#1C0404"/>
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="47" fill="url(#cg)" stroke="#C9A227" stroke-width="2.5"/>
+        <text x="50" y="42" text-anchor="middle" font-size="34" fill="#C9A227">⚽</text>
+        <text x="50" y="64" text-anchor="middle" font-size="9.5" font-weight="bold"
+              fill="#C9A227" font-family="Arial,sans-serif" letter-spacing="1">PREMIER</text>
+        <text x="50" y="76" text-anchor="middle" font-size="9.5" font-weight="bold"
+              fill="#C9A227" font-family="Arial,sans-serif" letter-spacing="1">LEAGUE</text>
+      </svg>
+      <div class="brand-text">
+        <h1>Premier League</h1>
+        <p>Live Tracker &nbsp;·&nbsp; football-data.org</p>
+      </div>
+    </div>
+    <div class="season-badge" id="seasonBadge">PL</div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab-btn active" data-tab="table">Table</button>
+    <button class="tab-btn" data-tab="fixtures">Fixtures</button>
+    <button class="tab-btn" data-tab="results">Results</button>
+  </div>
+</nav>
+
+<main>
+  <div class="panel active" id="panel-table">
+    <div class="section-title">League Table <small id="tbl-meta"></small></div>
+    <div id="table-content"><div class="loader"><div class="spinner"></div>Loading standings…</div></div>
+    <div class="table-meta">
+      <div class="legend">
+        <div class="legend-item"><div class="lbar" style="background:#5BA4CF"></div>Champions League</div>
+        <div class="legend-item"><div class="lbar" style="background:#E8A838"></div>Europa League</div>
+        <div class="legend-item"><div class="lbar" style="background:#7ECB7E"></div>Conference League</div>
+        <div class="legend-item"><div class="lbar" style="background:#D95B5B"></div>Relegation</div>
+      </div>
+      <div class="table-info" id="tbl-info"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-fixtures">
+    <div class="section-title">Upcoming Fixtures <small>Next 6 matchdays</small></div>
+    <div id="fixtures-content"><div class="loader"><div class="spinner"></div>Loading fixtures…</div></div>
+  </div>
+
+  <div class="panel" id="panel-results">
+    <div class="section-title">Recent Results <small>Last 6 matchdays</small></div>
+    <div id="results-content"><div class="loader"><div class="spinner"></div>Loading results…</div></div>
+  </div>
+
+  <div class="refresh-row">
+    <span id="last-updated"></span>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</main>
+
+<footer>
+  Data via <a href="https://www.football-data.org" target="_blank">football-data.org</a>
+  &nbsp;·&nbsp; English Premier League &nbsp;·&nbsp;
+  Styled after Arsenal Home Kit 2005/06<br>
+  Auto-refreshes every 60 s during live matches, every 5 min otherwise
+</footer>
+
+<script>
+/* All API calls go to /api/... on this same server.
+   The server adds the secret key — it never reaches the browser. */
+
+let refreshTimer = null;
+let hasLive      = false;
+
+/* ── Tabs ──────────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── Helpers ───────────────────────────────────────────────── */
+function qs(id)      { return document.getElementById(id); }
+function setHTML(id,h){ qs(id).innerHTML = h; }
+
+function loader(msg) {
+  return `<div class="loader"><div class="spinner"></div>${msg}</div>`;
+}
+function errBox(msg, detail) {
+  return `<div class="err">⚠ ${msg}${detail?`<br><br><code>${detail}</code>`:''}</div>`;
+}
+function zoneClass(pos) {
+  if (pos <= 4)  return 'z-ucl';
+  if (pos === 5) return 'z-uel';
+  if (pos === 6) return 'z-uecl';
+  if (pos >= 18) return 'z-rel';
+  return '';
+}
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function crestImg(url, name, cls='') {
+  if (!url) return '';
+  return `<img src="${url}" alt="${name}" class="${cls}" loading="lazy" onerror="this.style.visibility='hidden'">`;
+}
+
+/* ── Fetch (calls this server, not football-data.org directly) ─ */
+async function apiFetch(path) {
+  const r = await fetch(`/api${path}`, { cache: 'no-store' });
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.message || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+/* ── League Table ──────────────────────────────────────────── */
+async function loadTable() {
+  setHTML('table-content', loader('Loading standings…'));
+  try {
+    const data  = await apiFetch('/standings');
+    const total = data.standings.find(s => s.type === 'TOTAL');
+    if (!total) throw new Error('No TOTAL standings found');
+
+    const season = data.season;
+    const md     = season?.currentMatchday || '';
+    qs('seasonBadge').textContent = season
+      ? `${new Date(season.startDate).getFullYear()}/${String(new Date(season.endDate).getFullYear()).slice(2)}`
+      : 'PL';
+    qs('tbl-meta').textContent  = md ? `· Matchday ${md}` : '';
+    qs('tbl-info').textContent  = `${total.table.length} clubs`;
+
+    const rows = total.table.map(r => {
+      const zc   = zoneClass(r.position);
+      const gd   = r.goalDifference;
+      const form = (r.form || '').split(',').slice(-5).map(f => {
+        const c = f==='W'?'W':f==='D'?'D':'L';
+        return `<div class="fd ${c}" title="${f==='W'?'Win':f==='D'?'Draw':'Loss'}"></div>`;
+      }).join('');
+      return `<tr class="${zc}">
+        <td class="pos">${r.position}</td>
+        <td class="club">${crestImg(r.team.crest,r.team.shortName,'club-logo')}${r.team.shortName||r.team.name}</td>
+        <td>${r.playedGames}</td>
+        <td>${r.won}</td>
+        <td>${r.draw}</td>
+        <td>${r.lost}</td>
+        <td class="hide-sm">${r.goalsFor}</td>
+        <td class="hide-sm">${r.goalsAgainst}</td>
+        <td>${gd>0?'+':''}${gd}</td>
+        <td><div class="form-dots">${form}</div></td>
+        <td class="pts">${r.points}</td>
+      </tr>`;
+    }).join('');
+
+    setHTML('table-content', `
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>#</th><th>Club</th>
+          <th title="Played">P</th><th title="Won">W</th>
+          <th title="Drawn">D</th><th title="Lost">L</th>
+          <th class="hide-sm" title="Goals For">GF</th>
+          <th class="hide-sm" title="Goals Against">GA</th>
+          <th title="Goal Difference">GD</th>
+          <th title="Last 5">Form</th>
+          <th title="Points">Pts</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`);
+  } catch(e) {
+    console.error('[table]', e);
+    setHTML('table-content', errBox('Could not load standings.', e.message));
+  }
+}
+
+/* ── Render match cards ────────────────────────────────────── */
+function renderMatches(matches) {
+  if (!matches.length)
+    return '<p style="color:var(--muted);padding:1.5rem 0">No matches found.</p>';
+
+  const groups = {};
+  matches.forEach(m => {
+    const key = `${String(m.matchday).padStart(3,'0')}_${new Date(m.utcDate).toDateString()}`;
+    if (!groups[key]) groups[key] = { matchday: m.matchday, label: fmtDate(m.utcDate), matches:[] };
+    groups[key].matches.push(m);
+  });
+
+  return Object.values(groups)
+    .sort((a,b) => a.matchday - b.matchday)
+    .map(g => {
+      const cards = g.matches.map(m => {
+        const status = m.status;
+        const ft     = m.score?.fullTime;
+        const ht     = m.score?.halfTime;
+        const winner = m.score?.winner;
+        let scoreHTML, pillHTML;
+
+        if (status === 'FINISHED') {
+          scoreHTML = `<div class="score-num">${ft.home??'?'} – ${ft.away??'?'}</div>`;
+          pillHTML  = `<div class="status-pill p-ft">FT</div>`;
+        } else if (status === 'IN_PLAY') {
+          scoreHTML = `<div class="score-num">${ft?.home??0} – ${ft?.away??0}</div>`;
+          pillHTML  = `<div class="status-pill p-live">● Live</div>`;
+        } else if (status === 'PAUSED') {
+          scoreHTML = `<div class="score-num">${ht?.home??0} – ${ht?.away??0}</div>`;
+          pillHTML  = `<div class="status-pill p-ht">HT</div>`;
+        } else if (status === 'POSTPONED') {
+          scoreHTML = `<div class="score-vs">PPD</div>`;
+          pillHTML  = `<div class="status-pill p-ppd">Postponed</div>`;
+        } else {
+          scoreHTML = `<div class="score-vs">vs</div>`;
+          pillHTML  = `<div class="status-pill p-ns">${fmtTime(m.utcDate)}</div>`;
+        }
+
+        const homeWin = winner === 'HOME_TEAM';
+        const awayWin = winner === 'AWAY_TEAM';
+        return `<div class="match-card">
+          <div class="match-team home ${homeWin?'winner':''}">
+            ${crestImg(m.homeTeam.crest,m.homeTeam.shortName)}
+            <span>${m.homeTeam.shortName||m.homeTeam.name}</span>
+          </div>
+          <div class="score-box">${scoreHTML}${pillHTML}</div>
+          <div class="match-team away ${awayWin?'winner':''}">
+            ${crestImg(m.awayTeam.crest,m.awayTeam.shortName)}
+            <span>${m.awayTeam.shortName||m.awayTeam.name}</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      return `<div class="gw-group">
+        <div class="gw-header">Matchday ${g.matchday} &nbsp;·&nbsp; ${g.label}</div>
+        ${cards}
+      </div>`;
+    }).join('');
+}
+
+/* ── Fixtures ──────────────────────────────────────────────── */
+async function loadFixtures() {
+  setHTML('fixtures-content', loader('Loading upcoming fixtures…'));
+  try {
+    const [sched, timed] = await Promise.all([
+      apiFetch('/matches?status=SCHEDULED'),
+      apiFetch('/matches?status=TIMED'),
+    ]);
+    const all = [...(sched.matches||[]), ...(timed.matches||[])]
+      .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
+    const mds   = [...new Set(all.map(m => m.matchday))].slice(0,6);
+    const shown = all.filter(m => mds.includes(m.matchday));
+    setHTML('fixtures-content', renderMatches(shown));
+  } catch(e) {
+    console.error('[fixtures]', e);
+    setHTML('fixtures-content', errBox('Could not load fixtures.', e.message));
+  }
+}
+
+/* ── Results ───────────────────────────────────────────────── */
+async function loadResults() {
+  setHTML('results-content', loader('Loading recent results…'));
+  try {
+    const data = await apiFetch('/matches?status=FINISHED');
+    const all  = (data.matches||[]).sort((a,b) => new Date(b.utcDate) - new Date(a.utcDate));
+    const mds  = [...new Set(all.map(m => m.matchday))].slice(0,6);
+    setHTML('results-content', renderMatches(all.filter(m => mds.includes(m.matchday))));
+  } catch(e) {
+    console.error('[results]', e);
+    setHTML('results-content', errBox('Could not load results.', e.message));
+  }
+}
+
+/* ── Load all ──────────────────────────────────────────────── */
+async function loadAll() {
+  clearInterval(refreshTimer);
+  await Promise.all([loadTable(), loadFixtures(), loadResults()]);
+
+  // Check for live matches to set refresh interval
+  try {
+    const live = await apiFetch('/matches?status=IN_PLAY');
+    hasLive = (live.matches||[]).length > 0;
+  } catch(_) { hasLive = false; }
+
+  qs('last-updated').textContent = `Updated ${new Date().toLocaleTimeString('en-GB')}`;
+  refreshTimer = setInterval(loadAll, hasLive ? 60_000 : 300_000);
+}
+
+loadAll();
+</script>
+</body>
+</html>
