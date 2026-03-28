@@ -648,8 +648,10 @@ async function openTeamModal(teamId, teamName, crestUrl) {
   try {
     const data     = await apiFetch(`/team-matches/${teamId}`);
     const matches  = data.matches || [];
-    const finished = matches.filter(m => m.status === 'FINISHED');
-    const upcoming = matches.filter(m => ['SCHEDULED','TIMED'].includes(m.status));
+    const finished = matches.filter(m => m.status === 'FINISHED')
+                            .sort((a,b) => new Date(b.utcDate) - new Date(a.utcDate));
+    const upcoming = matches.filter(m => ['SCHEDULED','TIMED'].includes(m.status))
+                            .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
 
     let html = '';
     if (upcoming.length) {
