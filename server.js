@@ -5,11 +5,20 @@ const app     = express();
 const PORT    = process.env.PORT || 3000;
 const API_KEY = process.env.FD_API_KEY;          // set this in Render dashboard
 const FD_BASE = 'https://api.football-data.org/v4/competitions/PL';
+const FD_ROOT = 'https://api.football-data.org/v4';
 
 // Proxy helper — forwards requests to football-data.org with the secret key
 async function proxy(endpoint, query, res) {
   const qs  = new URLSearchParams(query).toString();
   const url = `${FD_BASE}${endpoint}${qs ? '?' + qs : ''}`;
+  const r   = await fetch(url, { headers: { 'X-Auth-Token': API_KEY } });
+  const data = await r.json();
+  res.status(r.status).json(data);
+}
+
+async function proxyRoot(endpoint, query, res) {
+  const qs  = new URLSearchParams(query).toString();
+  const url = `${FD_ROOT}${endpoint}${qs ? '?' + qs : ''}`;
   const r   = await fetch(url, { headers: { 'X-Auth-Token': API_KEY } });
   const data = await r.json();
   res.status(r.status).json(data);
@@ -24,5 +33,9 @@ app.get('/api/standings', (req, res) =>
 
 app.get('/api/matches', (req, res) =>
   proxy('/matches', req.query, res).catch(e => res.status(500).json({ error: e.message })));
+
+app.get('/api/team-matches/:id', (req, res) =>
+  proxyRoot(`/teams/${req.params.id}/matches`, { competitions: 'PL' }, res)
+    .catch(e => res.status(500).json({ error: e.message })));
 
 app.listen(PORT, () => console.log(`PL Tracker running on port ${PORT}`));
