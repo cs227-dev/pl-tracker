@@ -497,11 +497,10 @@ async function loadTable() {
     const rows = total.table.map(r => {
       const zc   = zoneClass(r.position);
       const gd   = r.goalDifference;
-      const form = (r.form || '').split(',').slice(-6).map(f => {
+      const form = ((r.form || '').match(/[WDL]/g) || []).slice(-6).map(f => {
         const c = f==='W'?'W':f==='D'?'D':'L';
-        const label = f==='W'?'W':f==='D'?'D':'L';
         const title = f==='W'?'Win':f==='D'?'Draw':'Loss';
-        return `<div class="fd ${c}" title="${title}">${label}</div>`;
+        return `<div class="fd ${c}" title="${title}">${f}</div>`;
       }).join('');
       const tName = r.team.shortName||r.team.name;
       return `<tr class="${zc}">
